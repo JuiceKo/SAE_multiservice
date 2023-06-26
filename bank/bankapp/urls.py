@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import *
 
 
 
@@ -11,4 +12,5 @@ urlpatterns = [
     path('execute-sql/', views.execute_sql, name='execute_sql'),
     path('depot/', views.depot, name='depot'),
     path('retrait/', views.retrait, name='retrait'),
+    path('comptes/', compte_list, name='compte_list'),
 ]

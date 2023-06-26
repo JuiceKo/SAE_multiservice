@@ -7,6 +7,10 @@ from django.db import connection
 from . import models
 from .models import Client, Compte
 from django.template import loader
+import asyncio
+from nats.aio.client import Client
+import nats
+from nats.aio.errors import ErrConnectionClosed, ErrTimeout
 
 
 def index(request):
@@ -74,6 +78,26 @@ def execute_sql(request):
         # Gérer le cas où le formulaire n'a pas été soumis
     return render(request, 'template.html')
 
+
+#_________________________________________________________________________________________________________________________#
+
+async def publish_deposit_message():
+    nc = NATS()
+    await nc.connect(servers=["10.128.200.7:4222"])
+
+    message = "test"
+
+    await nc.publish("deposit", message.encode())
+
+    await nc.close()
+
+async def publish_verification_message(montant):
+    if montant > 10000:
+        await publish_deposit_message()
+
+
+
+
 def depot(request):
     if request.method == 'POST':
         iban = request.POST.get('iban')  # Récupérer l'IBAN à partir des données POST
@@ -112,8 +136,13 @@ def depot(request):
                 cnx.commit()
                 print(f"Le solde du compte {iban} a été mis à jour : {nouveau_solde} euros.")
 
+                if montant > 10000:
+                    asyncio.run(publish_verification_message(montant))
+
         # Exemple d'utilisation : ajout du montant donné au solde d'un compte avec un IBAN spécifique
         mettre_a_jour_solde(iban, montant)
+
+        asyncio.run(publish_verification_message(montant))
 
         # Fermeture du curseur et de la connexion à la base de données
         cursor.close()
@@ -123,10 +152,30 @@ def depot(request):
     else:
         return HttpResponse("Erreur : méthode non autorisée.")
 
-
-
-
 #_________________________________________________________________________________________________________________________#
+
+async def publish_verification_message(montant):
+    nc = await nats.connect("ws://10.128.200.7:4222")
+
+    async def error_cb(e):
+        print("Error:", e)
+
+    async def closed_cb():
+        print("Connection closed.")
+
+    try:
+        await nc.connect(servers=["ws://10.128.200.7:4222"], error_cb=error_cb, closed_cb=closed_cb)
+
+        montant = "10001"
+        #if montant > 10000:
+        await nc.publish("deposit", float(montant).encode())
+
+        await nc.flush()
+        await nc.close()
+
+    except (ErrConnectionClosed, ErrTimeout) as e:
+        print("Error:", e)
+
 
 
 def retrait(request):
@@ -167,6 +216,9 @@ def retrait(request):
                 cnx.commit()
                 print(f"Le solde du compte {iban} a été mis à jour : {nouveau_solde} euros.")
 
+                if montant > 10000:
+                    asyncio.run(publish_verification_message(montant))
+
         # Exemple d'utilisation : ajout du montant donné au solde d'un compte avec un IBAN spécifique
         mettre_a_jour_solde(iban, montant)
 
@@ -177,3 +229,40 @@ def retrait(request):
         return HttpResponse("Le solde a été mis à jour avec succès.")
     else:
         return HttpResponse("Erreur : méthode non autorisée.")
+
+#_________________________________________________________________________________________________________________________#
+
+def get_comptes_by_client_id(client_id):
+    cnx = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="toto",
+        database="bank"
+    )
+    cursor = cnx.cursor()
+    query = "SELECT * FROM compte WHERE client_id = %s"
+    cursor.execute(query, (client_id,))
+    comptes = cursor.fetchall()
+    cursor.close()
+    cnx.close()
+    return comptes
+
+# Vue pour la page avec le formulaire et les résultats des comptes
+def compte_list(request):
+    comptes = []
+    message = ""
+
+    if request.method == 'POST':
+        client_id = request.POST.get('client_id')
+        comptes = get_comptes_by_client_id(client_id)
+        if not comptes:
+            message = f"Aucun compte trouvé pour l'ID du client {client_id}."
+
+    context = {'comptes': comptes, 'message': message}
+    return render(request, 'bankapp/compte_list.html', context)
+
+
+#_________________________________________________________________________________________________________________________#
+
+
+

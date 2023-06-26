@@ -65,6 +65,29 @@
           <button type="submit">Mettre à jour le solde</button>
         </form>
 
+            <h1>Liste des comptes</h1>
+            <form method="post">
+                {% csrf_token %}
+                <label for="client_id">ID du client :</label>
+                <input type="text" name="client_id" id="client_id">
+                <button type="submit">Rechercher</button>
+            </form>
+
+        <h1> Versement</h1>
+
+        <form method="post" action="{% url 'depot' %}">
+          {% csrf_token %}
+          <label for="iban_source">IBAN Source:</label>
+          <input type="text" id="iban_source" name="iban_source"><br>
+          <label for="iban_cible">IBAN Cible:</label>
+          <input type="text" id="iban_cible" name="iban_cible"><br>
+          <label for="montant">Montant:</label>
+          <input type="text" id="montant" name="montant"><br>
+          <input type="submit" value="Déposer">
+        </form>
+
+
+
     </ul>
 
 </body>
