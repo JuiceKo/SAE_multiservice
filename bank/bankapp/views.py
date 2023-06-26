@@ -11,6 +11,10 @@ import asyncio
 from nats.aio.client import Client
 import nats
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
+import csv
+
 
 
 def index(request):
@@ -57,9 +61,13 @@ def generate_iban():
     return IBAN
 
 
-def supprimer_compte(request, compte_id):
-    compte = Compte.objects.get(id=compte_id)
-    compte.delete()
+#_________________________________________________________________________________________________________________________#
+
+
+
+def supprimer_client(request, client_id):
+    client = Client.objects.get(id=client_id)
+    client.delete()
     return redirect('index')
 
 def execute_sql(request):
@@ -81,7 +89,7 @@ def execute_sql(request):
 
 #_________________________________________________________________________________________________________________________#
 
-async def publish_deposit_message():
+"""async def publish_deposit_message():
     nc = NATS()
     await nc.connect(servers=["10.128.200.7:4222"])
 
@@ -93,7 +101,7 @@ async def publish_deposit_message():
 
 async def publish_verification_message(montant):
     if montant > 10000:
-        await publish_deposit_message()
+        await publish_deposit_message()"""
 
 
 
@@ -107,7 +115,8 @@ def depot(request):
             host="localhost",
             user="root",
             password="toto",
-            database="bank",
+            database="bankapp",
+            port="3307",
         )
 
         # Création d'un curseur pour exécuter des requêtes SQL
@@ -136,13 +145,13 @@ def depot(request):
                 cnx.commit()
                 print(f"Le solde du compte {iban} a été mis à jour : {nouveau_solde} euros.")
 
-                if montant > 10000:
-                    asyncio.run(publish_verification_message(montant))
+                """if montant > 10000:
+                    asyncio.run(publish_verification_message(montant))"""
 
         # Exemple d'utilisation : ajout du montant donné au solde d'un compte avec un IBAN spécifique
         mettre_a_jour_solde(iban, montant)
 
-        asyncio.run(publish_verification_message(montant))
+        """asyncio.run(publish_verification_message(montant))"""
 
         # Fermeture du curseur et de la connexion à la base de données
         cursor.close()
@@ -154,7 +163,7 @@ def depot(request):
 
 #_________________________________________________________________________________________________________________________#
 
-async def publish_verification_message(montant):
+"""async def publish_verification_message(montant):
     nc = await nats.connect("ws://10.128.200.7:4222")
 
     async def error_cb(e):
@@ -174,7 +183,7 @@ async def publish_verification_message(montant):
         await nc.close()
 
     except (ErrConnectionClosed, ErrTimeout) as e:
-        print("Error:", e)
+        print("Error:", e)"""
 
 
 
@@ -187,7 +196,8 @@ def retrait(request):
             host="localhost",
             user="root",
             password="toto",
-            database="bank",
+            database="bankapp",
+            port="3307",
         )
 
         # Création d'un curseur pour exécuter des requêtes SQL
@@ -216,8 +226,8 @@ def retrait(request):
                 cnx.commit()
                 print(f"Le solde du compte {iban} a été mis à jour : {nouveau_solde} euros.")
 
-                if montant > 10000:
-                    asyncio.run(publish_verification_message(montant))
+                """if montant > 10000:
+                    asyncio.run(publish_verification_message(montant))"""
 
         # Exemple d'utilisation : ajout du montant donné au solde d'un compte avec un IBAN spécifique
         mettre_a_jour_solde(iban, montant)
@@ -237,7 +247,8 @@ def get_comptes_by_client_id(client_id):
         host="localhost",
         user="root",
         password="toto",
-        database="bank"
+        database="bank",
+        port="3307",
     )
     cursor = cnx.cursor()
     query = "SELECT * FROM compte WHERE client_id = %s"
@@ -264,5 +275,91 @@ def compte_list(request):
 
 #_________________________________________________________________________________________________________________________#
 
+from django.shortcuts import render
+import mysql.connector
 
+# Connexion à la base de données
+cnx = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="toto",
+    database="bankapp",
+    port="3307"
+)
+
+# Création d'un curseur pour exécuter des requêtes SQL
+cursor = cnx.cursor()
+
+def get_solde_by_iban(iban):
+    query = "SELECT solde FROM compte WHERE IBAN = %s"
+    cursor.execute(query, (iban,))
+    result = cursor.fetchone()
+    if result:
+        solde = result[0]
+        return solde
+    else:
+        print(f"Aucun compte trouvé avec l'IBAN {iban}.")
+        return None
+
+def mettre_a_jour_solde(iban, montant):
+    solde = get_solde_by_iban(iban)
+    if solde is not None:
+        solde = float(solde)
+        nouveau_solde = solde + montant
+        query = "UPDATE compte SET solde = %s WHERE IBAN = %s"
+        cursor.execute(query, (nouveau_solde, iban))
+        cnx.commit()
+        print(f"Le solde du compte {iban} a été mis à jour : {nouveau_solde} euros.")
+
+def versement(request):
+    if request.method == 'POST':
+        iban_source = request.POST.get('iban_source')
+        iban_cible = request.POST.get('iban_cible')
+        montant = float(request.POST.get('montant'))
+
+        mettre_a_jour_solde(iban_source, -montant)
+        mettre_a_jour_solde(iban_cible, montant)
+
+        return render(request, 'bankapp/index.html')
+    else:
+        return render(request, 'bankapp/index.html')
+
+
+# _________________________________________________________________________________________________________________________#
+
+
+"""def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('accueil')  # Rediriger vers la page d'accueil après la connexion
+        else:
+            error_message = "Identifiants invalides. Veuillez réessayer."
+            return render(request, 'login.html', {'error_message': error_message})
+    else:
+        return render(request, 'login.html')"""
+
+
+# _________________________________________________________________________________________________________________________#
+
+def rechercher_comptes(request):
+    if request.method == 'POST':
+        client_id = request.POST.get('client_id')
+        comptes = Compte.objects.filter(client_id=client_id)
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="comptes_client_{}.csv"'.format(client_id)
+
+        writer = csv.writer(response, delimiter=' ')  # Utilisation du délimiteur d'espace
+        writer.writerow(['IBAN', 'Solde'])
+
+        for compte in comptes:
+            writer.writerow([compte.IBAN, compte.solde])
+
+        return response
+
+    return render(request, 'bankapp/index.html')
 

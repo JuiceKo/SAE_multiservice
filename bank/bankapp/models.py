@@ -9,6 +9,8 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.contrib.auth.models import AbstractUser
+
 
 class Client(models.Model):
     #id = models.IntegerField(primary_key=True)
@@ -27,10 +29,21 @@ class Client(models.Model):
         db_table = 'client'
 
 
+"""class Client(AbstractUser):
+    nom_utilisateur = models.CharField(max_length=150, unique=True)
+    mdp = models.CharField(max_length=128)
+
+    USERNAME_FIELD = 'nom_utilisateur'
+    REQUIRED_FIELDS = ['email']  # Ajoutez ici les champs requis pour la création d'un utilisateur
+
+    def __str__(self):
+        return self.nom_utilisateur"""
+
+
 class Compte(models.Model):
     #id = models.IntegerField(primary_key=True)
-    IBAN = models.CharField(max_length=50, unique=True)
-    client = models.ForeignKey(Client, on_delete=models.DO_NOTHING)
+    IBAN = models.CharField(max_length=50, unique=True, null=True)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, null=True)
     solde = models.DecimalField(max_digits=10, decimal_places=2, null=True, default=0.00)
     date = models.DateTimeField(auto_now_add=True)
 
