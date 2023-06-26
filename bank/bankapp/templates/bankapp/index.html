@@ -10,11 +10,11 @@
             <li><p>"{{ client.nom}} {{ client.prenom }} {{ client.sexe }} {{ client.email }} {{ client.nom_utilisateur }} {{ client.mdp }}"</p></li>
         {% endfor %}
 
-    <form method="post" action="{% url 'nouveau_client' %}">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Ajouter le client</button>
-    </form>
+        <form method="post" action="{% url 'nouveau_client' %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Ajouter le client</button>
+        </form>
 
     <h1>Comptes</h1>
 
@@ -27,12 +27,44 @@
             {{ form.as_p }}
             <button type="submit">Nouveau Compte</button>
         </form>
+
+        <h1> Suppression Compte </h1>
+
         <form action="{% url 'execute_sql' %}" method="post">
           {% csrf_token %}
           <label for="id_input">ID:</label>
           <input type="text" id="id_input" name="id">
           <button type="submit">Exécuter SQL</button>
         </form>
+
+        <h1>Depot</h1>
+
+        <form method="post" action="{% url 'depot' %}">
+          {% csrf_token %} <!-- Ajoutez ceci pour la protection contre les attaques CSRF -->
+
+          <label for="iban">IBAN :</label>
+          <input type="text" id="iban" name="iban" required>
+
+          <label for="montant">Montant :</label>
+          <input type="number" id="montant" name="montant" step="0.01" required>
+
+          <button type="submit">Mettre à jour le solde</button>
+        </form>
+
+        <h1>Retrait</h1>
+
+        <form method="post" action="{% url 'retrait' %}">
+          {% csrf_token %} <!-- Ajoutez ceci pour la protection contre les attaques CSRF -->
+
+          <label for="iban">IBAN :</label>
+          <input type="text" id="iban" name="iban" required>
+
+          <label for="montant">Montant :</label>
+          <input type="number" id="montant" name="montant" step="0.01" required>
+
+          <button type="submit">Mettre à jour le solde</button>
+        </form>
+
     </ul>
 
 </body>

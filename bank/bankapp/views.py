@@ -73,3 +73,107 @@ def execute_sql(request):
 
         # Gérer le cas où le formulaire n'a pas été soumis
     return render(request, 'template.html')
+
+def depot(request):
+    if request.method == 'POST':
+        iban = request.POST.get('iban')  # Récupérer l'IBAN à partir des données POST
+        montant = float(request.POST.get('montant'))  # Récupérer le montant à partir des données POST
+
+        cnx = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="toto",
+            database="bank",
+        )
+
+        # Création d'un curseur pour exécuter des requêtes SQL
+        cursor = cnx.cursor()
+
+        # Fonction pour trouver le solde d'un compte en fonction de son IBAN
+        def trouver_solde_par_iban(iban):
+            query = "SELECT solde FROM compte WHERE IBAN = %s"
+            cursor.execute(query, (iban,))
+            result = cursor.fetchone()
+            if result:
+                solde = result[0]
+                return solde
+            else:
+                print(f"Aucun compte trouvé avec l'IBAN {iban}.")
+                return None
+
+        # Fonction pour mettre à jour le solde d'un compte
+        def mettre_a_jour_solde(iban, montant):
+            solde = trouver_solde_par_iban(iban)
+            if solde is not None:
+                solde = float(solde)
+                nouveau_solde = solde + montant
+                query = "UPDATE compte SET solde = %s WHERE IBAN = %s"
+                cursor.execute(query, (nouveau_solde, iban))
+                cnx.commit()
+                print(f"Le solde du compte {iban} a été mis à jour : {nouveau_solde} euros.")
+
+        # Exemple d'utilisation : ajout du montant donné au solde d'un compte avec un IBAN spécifique
+        mettre_a_jour_solde(iban, montant)
+
+        # Fermeture du curseur et de la connexion à la base de données
+        cursor.close()
+        cnx.close()
+
+        return HttpResponse("Le solde a été mis à jour avec succès.")
+    else:
+        return HttpResponse("Erreur : méthode non autorisée.")
+
+
+
+
+#_________________________________________________________________________________________________________________________#
+
+
+def retrait(request):
+    if request.method == 'POST':
+        iban = request.POST.get('iban')  # Récupérer l'IBAN à partir des données POST
+        montant = float(request.POST.get('montant'))  # Récupérer le montant à partir des données POST
+
+        cnx = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="toto",
+            database="bank",
+        )
+
+        # Création d'un curseur pour exécuter des requêtes SQL
+        cursor = cnx.cursor()
+
+        # Fonction pour trouver le solde d'un compte en fonction de son IBAN
+        def trouver_solde_par_iban(iban):
+            query = "SELECT solde FROM compte WHERE IBAN = %s"
+            cursor.execute(query, (iban,))
+            result = cursor.fetchone()
+            if result:
+                solde = result[0]
+                return solde
+            else:
+                print(f"Aucun compte trouvé avec l'IBAN {iban}.")
+                return None
+
+        # Fonction pour mettre à jour le solde d'un compte
+        def mettre_a_jour_solde(iban, montant):
+            solde = trouver_solde_par_iban(iban)
+            if solde is not None:
+                solde = float(solde)
+                nouveau_solde = solde - montant
+                query = "UPDATE compte SET solde = %s WHERE IBAN = %s"
+                cursor.execute(query, (nouveau_solde, iban))
+                cnx.commit()
+                print(f"Le solde du compte {iban} a été mis à jour : {nouveau_solde} euros.")
+
+        # Exemple d'utilisation : ajout du montant donné au solde d'un compte avec un IBAN spécifique
+        mettre_a_jour_solde(iban, montant)
+
+        # Fermeture du curseur et de la connexion à la base de données
+        cursor.close()
+        cnx.close()
+
+        return HttpResponse("Le solde a été mis à jour avec succès.")
+    else:
+        return HttpResponse("Erreur : méthode non autorisée.")
