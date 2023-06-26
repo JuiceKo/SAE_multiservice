@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,6 +16,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+STATIC_URL = '/static/'
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'bankapp', 'static'),
+]
+
+
+STATIC_URL = '/static/'
 
 # Application definition
 
@@ -65,13 +74,15 @@ WSGI_APPLICATION = 'bank.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bank',
+        'NAME': 'bankapp',
         'USER': 'root',
         'PASSWORD': 'toto',
         'HOST': 'localhost',
-        'PORT': '3306',
+        'PORT': '3307',
     }
 }
+
+#AUTH_USER_MODEL = 'bankapp.Client'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
